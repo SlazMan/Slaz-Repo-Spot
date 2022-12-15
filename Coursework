@@ -1,0 +1,249 @@
+#QUESTION ONE
+#import the data
+import pandas as pd
+import numpy as np
+import matplotlib as plt
+import scipy
+from scipy import integrate 
+import math
+import statistics
+
+pwt = pd.read_csv('https://raw.githubusercontent.com/jivizcaino/PWT_10.0/main/pwt100.csv', encoding='latin-1')
+
+
+#QUESTION TWO
+#create subset
+pwt =pwt[['country','year', 'pop','rgdpo','emp','avh','cgdpo','hc','cn','ctfp','labsh']]
+print(pwt[pwt["year"] == 2020].describe())
+#no observations
+print(pwt[pwt["year"] == 2019].describe())
+#183 observations - needs cleaning
+print(pwt[pwt["year"] == 2018].describe())
+# same as 2019 - hence take 2019 as year for analysis as latest year with the most observations
+
+print('2019 latest year with large observations hence will be the year for our analysis')
+
+
+pwt1 = pwt[pwt.year == 2019]
+
+pwt2 = pwt1.set_index('country', drop=True, append=False, inplace=False, verify_integrity=False)
+
+pwt2['emp'] = pwt2['emp'].apply(lambda x: x*1e6)
+pwt2['pop'] = pwt2['pop'].apply(lambda x: x*1e6)
+pwt2['rgdpo'] = pwt2['rgdpo'].apply(lambda x: x*1e6)
+pwt2['cgdpo'] = pwt2['cgdpo'].apply(lambda x: x*1e6)
+pwt2['cn'] = pwt2['cn'].apply(lambda x: x*1e6)
+pwt2['ipw']= pwt2['rgdpo']/pwt2['emp']
+pwt2['iphw']= pwt2['rgdpo']/(pwt2['emp']*pwt2['avh'])
+pwt2['ipuhc']= pwt2['cgdpo']/(pwt2['emp']*pwt2['hc'])
+pwt2['iphhc']= pwt2['cgdpo']/(pwt2['emp']*pwt2['avh']*pwt2['hc'])
+
+pwt3 = pwt2.dropna()
+
+pwt3
+
+#QUESTION THREE
+#Descriptive statistics of various variables in the sample 
+print('********Descrpitive Stats')
+desc_stats = pwt3.describe()
+print(desc_stats)
+
+#Richest and poorest countries RESULTS SHOW USA IS RICHEST AND SOUTH AFRICA IS POOREST
+print('********richest country')
+print(pwt3.loc[pwt3['ipw'] == pwt3['ipw'].max()])
+
+print('*********Ireland is the richest Country')
+print('*********Poorest Country')
+print(pwt3.loc[pwt3['ipw'] == pwt3['ipw'].min()])
+print('*********India is the poorest country')
+
+#Countries in the 95th and 5th percentile
+print(pwt3.quantile([.95,.90,.10,.05]))
+
+#Try using if function to fin names of countries to include
+
+#Find the countries - AM STRUGGLING but know how to cancel out the other countries
+#function to keep certain countries df1.query("country in [United States, South Africa]")
+
+print( 'table of 4 richest countries (top 5%)' )
+
+pwt4 = pwt3[pwt3.ipw >= 129094.631161]
+print(pwt4)
+
+print( 'table of 7 richest countries (top 10%)' )
+
+pwt5 = pwt3[pwt3.ipw >= 106091.832647]
+print(pwt5)
+
+
+print( 'table of 7 poorest countries ( bottom 10%)' )
+
+pwt6 = pwt3[pwt3.ipw <= 31744.870824]
+print(pwt6)
+
+print( 'table of 4 poorest countries ( bottom 5%)' )
+
+pwt7 = pwt3[pwt3.ipw <= 23670.645059]
+print(pwt7)
+
+#Compute ratio between richest and poorest and between 90th and 10th percentile
+IRE_IND = ( 221661.21548 / 8428.989643) #IRELAND and CAMBODIA
+ninetieth_tenth = ( 105788.638953 / 22541.785742) #90th and 10th
+ninetyfifth_fifth = ( 128600.112090 /15089.369721 ) #95th and 5th
+
+
+print(IRE_IND, "is ratio between USA and Malta" )
+print(ninetieth_tenth, "is the ratio between the 90th and 10th percentiles")
+print(ninetyfifth_fifth, "is the ratio between the 95th and 5th percentiles")
+
+#log-variance of measures of GDP per worker
+
+ipw1 = pwt3['ipw']
+print(np.var(np.log(ipw1)))
+print('= log variance of GDP per worker') 
+
+ # Question 4
+# Based on your results above: can differences in human capital and hours worked help to explain differences in standard of living across countries? If so, by what magnitude?
+
+print( 'human capital is significantly lower in the poorer countries than in the richer ones whoch could explain some of the differences , average hours worked seems to be larger in poorer countries than rich ones which seems strange')
+
+pwt3['log_ipw'] = np.log2(pwt3['ipw'])
+pwt3['log_iphw'] = np.log2(pwt3['iphw'])
+pwt3['log_ipuhc'] = np.log2(pwt3['ipuhc'])
+pwt3['log_iphhc'] = np.log2(pwt3['iphhc'])
+
+pwt3.plot.scatter(x='log_ipw',y='cn', title = 'Scatter plot between log Income per Worker and Capital Stock')
+pwt3.plot.scatter(x='log_iphw',y='cn', title = 'Scatter plot between log Income per Hours Worked and Capital Stock')
+pwt3.plot.scatter(x='log_ipuhc',y='cn', title = 'Scatter plot between log Income per Unit of Human Capital and Capital Stock')
+pwt3.plot.scatter(x='log_iphhc',y='cn', title = 'Scatter plot between log Income per hour of Human Capital and Capital Stock')
+
+pwt3.plot.scatter(x='log_ipw',y='hc', title = 'Scatter plot between log Income per Worker and Human Capital')
+pwt3.plot.scatter(x='log_iphw',y='hc', title = 'Scatter plot between log Income per Hours Worked and Human Capital')
+pwt3.plot.scatter(x='log_ipuhc',y='hc', title = 'Scatter plot between log Income per Unit of Human Capital and Human Capital')
+pwt3.plot.scatter(x='log_iphhc',y='hc', title = 'Scatter plot between log Income per hour of Human Capital and Human Capital')
+
+pwt3.plot.scatter(x='log_ipw',y='avh', title = 'Scatter plot between log Income per Worker and Average Hours Worked')
+pwt3.plot.scatter(x='log_iphw',y='avh', title = 'Scatter plot between log Income per Hours Worked and Average Hours Worked')
+pwt3.plot.scatter(x='log_ipuhc',y='avh', title = 'Scatter plot between log Income per Unit of Human Capital and Average Hours Worked')
+pwt3.plot.scatter(x='log_iphhc',y='avh', title = 'Scatter plot between log Income per hour of Human Capital and Average Hours Worked')
+
+pwt3.plot.scatter(x='log_ipw',y='ctfp', title = 'Scatter plot between log Income per Worker and Technology')
+pwt3.plot.scatter(x='log_iphw',y='ctfp', title = 'Scatter plot between log Income per Hours Worked and Technology')
+pwt3.plot.scatter(x='log_ipuhc',y='ctfp', title = 'Scatter plot between log Income per Unit of Human Capital and Technology')
+pwt3.plot.scatter(x='log_iphhc',y='ctfp', title = 'Scatter plot between log Income per hour of Human Capital and Technology')
+
+pwt3.plot.scatter(x='log_ipw',y='labsh', title = 'Scatter plot between log Income per Worker and Share of Labour Compensation')
+pwt3.plot.scatter(x='log_iphw',y='labsh', title = 'Scatter plot between log Income per Hours Worked and Share of Labour Compensation')
+pwt3.plot.scatter(x='log_ipuhc',y='labsh', title = 'Scatter plot between log Income per Unit of Human Capital and Share of Labour Compensation')
+pwt3.plot.scatter(x='log_iphhc',y='labsh', title = 'Scatter plot between log Income per hour of Human Capital and Share of Labour Compensation')
+
+ka =(pwt3['cn']) ** ( 1- pwt3['labsh'])
+h = pwt3['hc'] ** pwt3['labsh']
+ykh = ka* h
+
+y = pwt3['ipw']
+
+lykh = np.log(ykh)
+
+ly = np.log(y)
+
+success1 = (np.var(lykh) / np.var(ly))
+
+print(success1)
+
+ka1 =(pwt5['cn']) ** ( 1- pwt5['labsh'])
+h1 = pwt5['hc'] ** pwt5['labsh']
+ykh1 = ka1* h1
+
+y1 = pwt5['ipw']
+
+
+ka2 = (pwt6['cn']) ** ( 1- pwt6['labsh'])
+h2 = pwt6['hc'] ** pwt6['labsh']
+ykh2 = ka2* h2
+
+y2 = pwt6['ipw']
+
+ykh1 = np.mean(ykh1)
+ykh2 = np.mean(ykh2)
+
+y1 = np.mean(y1)
+
+y2 = np.mean(y2)
+
+
+success2 = (ykh1 / ykh2) / (y1 / y2)
+
+print(success2)
+print(' Success in 90th, 10th percentile')
+
+ka3 =(pwt4['cn']) ** ( 1- pwt4['labsh'])
+h3 = pwt4['hc'] ** pwt4['labsh']
+ykh3 = ka3* h3
+
+y3 = pwt4['ipw']
+
+
+ka4 = (pwt7['cn']) ** ( 1- pwt7['labsh'])
+h4 = pwt7['hc'] ** pwt7['labsh']
+ykh4 = ka4* h4
+
+y4 = pwt7['ipw']
+
+ykh3 = np.mean(ykh3)
+ykh4 = np.mean(ykh4)
+
+y3 = np.mean(y3)
+
+y4 = np.mean(y4)
+
+success3 = (ykh3 / ykh4) / (y3 / y4)
+
+print(success3)
+print(' Success in 95th, 5th percentile')
+
+print(pwt3.quantile([.75,.25]))
+
+pwt9 = pwt3[pwt3.ipw >= 96354.736066]
+pwt10 = pwt3[pwt3.ipw <= 43688.344528]
+
+ka5 =(pwt9['cn']) ** ( 1- pwt9['labsh'])
+h5 = pwt9['hc'] ** pwt9['labsh']
+ykh5 = ka5* h5
+
+y5 = pwt9['ipw']
+
+
+ka6 = (pwt10['cn']) ** ( 1- pwt10['labsh'])
+h6 = pwt10['hc'] ** pwt10['labsh']
+ykh6 = ka6* h6
+
+y6 = pwt10['ipw']
+
+ykh5 = np.mean(ykh5)
+ykh6 = np.mean(ykh6)
+
+y5 = np.mean(y5)
+
+y6 = np.mean(y6)
+
+
+success4 = (ykh5 / ykh6) / (y5 / y6)
+
+print(success4)
+print(' Success in 75th, 25th percentile')
+print('The standard of living across countries variees on the method of output useed ; if we use success method 1, using log variance, our results show that technology as a factor of production is quite small and factor accumulation is the main factor while the inter-percentile differentials present a stronger case for A, especially in the 75%,  25%.') 
+
+TFP =(pwt3['ctfp'])
+
+y = pwt3['ipw']
+
+LTFP = np.log(TFP)
+
+ly = np.log(y)
+
+success5 = (np.var(LTFP) / np.var(ly))
+
+print(success5)
+
+print('The effectiveness of A is small compared to factor accumulation and a lot smaller than with out previous method of calcuation')
